@@ -40,10 +40,10 @@
             <span>Protected</span><span class="nav-count" id="protected-nav-count">—</span>
           </button>
           <div class="nav-divider"></div>
-          <button class="nav-item" data-view="developer">
-            <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m8.5 8-4 4 4 4m7-8 4 4-4 4m-2-11-3 14"/></svg></span>
-            <span>Development</span>
-          </button>
+          <label class="developer-toggle" for="developer-mode-switch">
+            <span class="developer-toggle-copy"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m8.5 8-4 4 4 4m7-8 4 4-4 4m-2-11-3 14"/></svg></span><span><strong>Developer view</strong><small>Docker · SDKs · tool caches</small></span></span>
+            <span class="switch-control"><input id="developer-mode-switch" type="checkbox" role="switch" aria-label="Enable developer view" /><i></i></span>
+          </label>
         </nav>
 
         <div class="sidebar-bottom">
@@ -121,6 +121,37 @@
               <div class="section-heading"><div><p class="eyebrow">BREAKDOWN</p><h2>Your home folder</h2></div></div>
               <div id="home-locations" class="location-list"></div>
             </section>
+          </div>
+        </section>
+
+        <section id="developer-view" class="view">
+          <div class="developer-hero glass-card">
+            <div class="developer-copy">
+              <p class="eyebrow">DEVELOPER VIEW</p>
+              <h2>See the storage your tools can rebuild.</h2>
+              <p>Inspect Docker resources, SDKs, generated dependencies, and package caches separately from personal storage. Nothing is selected automatically.</p>
+              <button class="developer-browse-button" id="developer-browse-all">Browse developer storage</button>
+            </div>
+            <div class="developer-metrics">
+              <div><span>Developer storage</span><strong id="developer-total">—</strong><small id="developer-item-count">—</small></div>
+              <div class="docker-metric"><span>Docker</span><strong id="docker-total">—</strong><small id="docker-item-count">—</small></div>
+            </div>
+          </div>
+
+          <div class="developer-grid">
+            <section class="developer-panel docker-panel glass-card">
+              <div class="section-heading"><div><p class="eyebrow">DOCKER DESK</p><h2>What Docker is holding</h2></div><span class="review-pill">Review before removal</span></div>
+              <div id="docker-resources" class="docker-resource-grid"></div>
+            </section>
+            <section class="developer-panel glass-card">
+              <div class="section-heading"><div><p class="eyebrow">LOCAL TOOLING</p><h2>SDKs, dependencies, and caches</h2></div></div>
+              <div id="developer-tools" class="developer-tool-list"></div>
+            </section>
+          </div>
+
+          <div class="developer-safety glass-card">
+            <span class="developer-safety-icon">⌁</span>
+            <div><strong>Deletion stays intentional</strong><p>Docker images are removed only through Docker after a fresh check; images in use are refused. Project folders can be moved to Trash, never recursively deleted.</p></div>
           </div>
         </section>
 

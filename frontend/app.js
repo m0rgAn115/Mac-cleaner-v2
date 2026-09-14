@@ -47,8 +47,21 @@ function createElement(tag, className, text) {
   if (text !== undefined) element.textContent = text; return element;
 }
 
+function isDeveloperCategory(category) {
+  return /developer|docker|xcode|gradle|npm|pnpm|python|homebrew/i.test(category || "");
+}
+
+function isDockerImage(item) {
+  return item.metadata?.execution_kind === "docker-image";
+}
+
+function displayItemPath(item) {
+  if (isDockerImage(item)) return (item.metadata?.docker_tags || []).join(", ") || item.metadata?.docker_id || item.path;
+  return homePath(item.path);
+}
+
 function itemActionable(item) {
-  return item.classification === "REVIEW" && item.metadata?.actionable === true && !item.path.includes("://");
+  return item.classification === "REVIEW" && item.metadata?.actionable === true && (!item.path.includes("://") || isDockerImage(item));
 }
 
 function summarizeReport(report) {
@@ -75,7 +88,7 @@ function summarizeReport(report) {
 
 function categoriesFor(classification) {
   let categories = (state.summary?.categories || []).filter((row) => row.classification === classification);
-  if (state.developerMode) categories = categories.filter((row) => /developer|docker|xcode|gradle|npm|python|homebrew/i.test(row.category));
+  if (state.developerMode) categories = categories.filter((row) => isDeveloperCategory(row.category));
   return categories.sort((a, b) => b.size - a.size);
 }
 
@@ -93,7 +106,7 @@ function renderSummary() {
     const count = (summary.categories || []).filter((row) => row.classification === kind).reduce((sum, row) => sum + Number(row.count || 0), 0);
     $("#" + kind.toLowerCase() + "-nav-count").textContent = compactNumber(count);
   }
-  renderTopCategories(); renderHomeLocations();
+  renderTopCategories(); renderHomeLocations(); renderDeveloperView();
   const generated = summary.generated_at ? new Date(summary.generated_at) : null;
   $("#scan-status-label").textContent = generated && !Number.isNaN(generated.valueOf())
     ? `${isTauri ? "Scanned" : "Preview"} · ${generated.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`
@@ -123,10 +136,48 @@ function renderHomeLocations() {
   }
 }
 
+function renderDeveloperView() {
+  if (!state.summary) return;
+  const categories = (state.summary.categories || []).filter((row) => isDeveloperCategory(row.category));
+  const docker = categories.filter((row) => /^Docker\s+—/i.test(row.category));
+  const tooling = categories.filter((row) => !/^Docker\s+—/i.test(row.category)).sort((a, b) => b.size - a.size);
+  const total = categories.reduce((sum, row) => sum + Number(row.size || 0), 0);
+  const itemCount = categories.reduce((sum, row) => sum + Number(row.count || 0), 0);
+  const dockerTotal = docker.reduce((sum, row) => sum + Number(row.size || 0), 0);
+  const dockerCount = docker.reduce((sum, row) => sum + Number(row.count || 0), 0);
+  $("#developer-total").textContent = formatBytes(total);
+  $("#developer-item-count").textContent = `${itemCount.toLocaleString("en-US")} scanned item${itemCount === 1 ? "" : "s"}`;
+  $("#docker-total").textContent = formatBytes(dockerTotal);
+  $("#docker-item-count").textContent = docker.length ? `${dockerCount.toLocaleString("en-US")} resource${dockerCount === 1 ? "" : "s"}` : "Not detected";
+
+  const dockerContainer = $("#docker-resources"); dockerContainer.replaceChildren();
+  if (!docker.length) dockerContainer.append(createElement("div", "developer-empty", "Docker did not report any local resources in this scan."));
+  for (const row of docker.sort((a, b) => b.size - a.size)) {
+    const button = createElement("button", "docker-resource"); button.type = "button";
+    const name = row.category.replace(/^Docker\s+—\s*/i, "");
+    const detail = row.actionable_count ? `${row.actionable_count.toLocaleString("en-US")} can be reviewed for removal` : `${row.count.toLocaleString("en-US")} item${row.count === 1 ? "" : "s"} · Docker-managed`;
+    button.append(createElement("span", "", name), createElement("strong", "", formatBytes(row.size)), createElement("small", "", detail));
+    button.addEventListener("click", () => openBrowser(row.classification, row.category, true)); dockerContainer.append(button);
+  }
+
+  const toolsContainer = $("#developer-tools"); toolsContainer.replaceChildren();
+  if (!tooling.length) toolsContainer.append(createElement("div", "developer-empty", "No supported SDK, dependency, or package-cache storage was found."));
+  for (const row of tooling.slice(0, 6)) {
+    const button = createElement("button", "developer-tool"); button.type = "button";
+    const icon = createElement("span", "developer-tool-icon", row.category.replace(/^Developer\s+—\s*/i, "").slice(0, 2).toUpperCase());
+    const name = createElement("span", "developer-tool-name");
+    const action = row.classification === "SAFE" ? "Manager or confirmed cleanup" : row.actionable_count ? "Review individually" : "Review only";
+    name.append(createElement("strong", "", row.category), createElement("span", "", `${row.count.toLocaleString("en-US")} item${row.count === 1 ? "" : "s"} · ${action}`));
+    button.append(icon, name, createElement("strong", "developer-tool-size", formatBytes(row.size)), createElement("span", "developer-tool-chevron", "›"));
+    button.addEventListener("click", () => openBrowser(row.classification, row.category, true)); toolsContainer.append(button);
+  }
+}
+
 async function loadItems({ append = false } = {}) {
   if (state.loading) return; state.loading = true;
   try {
-    const result = await dataSource.listItems({ classification: state.classification, category: state.developerMode ? "__developer__" : state.category || null, query: state.query || null, offset: state.offset, limit: state.limit });
+    const category = state.category || (state.developerMode ? "__developer__" : null);
+    const result = await dataSource.listItems({ classification: state.classification, category, query: state.query || null, offset: state.offset, limit: state.limit });
     state.totalResults = result.total; state.loadedItems = append ? state.loadedItems.concat(result.items) : result.items; renderItems(result.items, append);
     const shown = Math.min(state.offset + result.items.length, result.total); $("#result-count").textContent = `${shown.toLocaleString("en-US")} of ${result.total.toLocaleString("en-US")}`;
     $("#load-more").classList.toggle("visible", shown < result.total); updateSelectionBar();
@@ -139,7 +190,7 @@ function renderItems(items, append) {
   for (const item of items) {
     const row = createElement("div", "result-row"), selectCell = createElement("span", "select-cell");
     if (itemActionable(item)) {
-      const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.checked = state.selected.has(item.path); checkbox.setAttribute("aria-label", `Select ${homePath(item.path)}`);
+      const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.checked = state.selected.has(item.path); checkbox.setAttribute("aria-label", `Select ${displayItemPath(item)}`);
       checkbox.addEventListener("change", () => toggleSelection(item, checkbox.checked)); selectCell.append(checkbox);
     } else {
       selectCell.textContent = item.classification === "PROTECTED" || item.metadata?.actionable === false ? "⌁" : "";
@@ -148,7 +199,7 @@ function renderItems(items, append) {
     const modified = item.mtime ? ` · Modified ${new Date(item.mtime).toLocaleDateString("en-US")}` : "";
     const action = item.proposed_action ? ` · Action: ${item.proposed_action}` : "";
     const detail = `${item.reason || "No additional details"}${modified}${action}`;
-    const pathCell = createElement("div", "path-cell"), path = createElement("strong", "", homePath(item.path)), reason = createElement("span", "", detail);
+    const pathCell = createElement("div", "path-cell"), path = createElement("strong", "", displayItemPath(item)), reason = createElement("span", "", detail);
     path.title = item.path; reason.title = detail; pathCell.append(path, reason);
     const tag = createElement("span", "tag", item.category), size = createElement("span", "size-cell", formatBytes(item.size));
     const reveal = createElement("button", "reveal-button"); reveal.type = "button"; reveal.title = isTauri ? "Show in Finder" : "Copy path"; reveal.setAttribute("aria-label", reveal.title);
@@ -168,8 +219,13 @@ function updateSelectionBar() {
   $("#selection-bar").hidden = !review || count === 0; $("#selection-count").textContent = `${count.toLocaleString("en-US")} selected`; $("#selection-size").textContent = `${formatBytes(size)} estimated`;
   const visible = state.loadedItems.filter(itemActionable), selectedVisible = visible.filter((item) => state.selected.has(item.path)).length; const master = $("#select-visible");
   master.hidden = !review; master.checked = visible.length > 0 && selectedVisible === visible.length; master.indeterminate = selectedVisible > 0 && selectedVisible < visible.length; master.disabled = !visible.length;
-  const hasDirectory = [...state.selected.values()].some((item) => item.metadata?.object_type !== "file");
-  $("#delete-selection").disabled = hasDirectory; $("#delete-selection").title = hasDirectory ? "REVIEW directories can only be moved to Trash" : "Requires typing DELETE";
+  const selected = [...state.selected.values()]; const hasDocker = selected.some(isDockerImage), hasFilesystem = selected.some((item) => !isDockerImage(item));
+  const hasDirectory = selected.some((item) => !isDockerImage(item) && item.metadata?.object_type && item.metadata.object_type !== "file");
+  const trash = $("#trash-selection"), remove = $("#delete-selection");
+  trash.disabled = hasDocker; trash.title = hasDocker ? "Docker resources are removed through Docker, not moved to Trash" : "Move selected files or directories to Trash";
+  remove.textContent = hasDocker && !hasFilesystem ? "Remove from Docker…" : "Delete permanently…";
+  remove.disabled = hasDirectory || (hasDocker && hasFilesystem);
+  remove.title = hasDocker && hasFilesystem ? "Select Docker images separately from filesystem items" : hasDirectory ? "REVIEW directories can only be moved to Trash" : hasDocker ? "Docker will refuse images that are in use" : "Requires typing DELETE";
 }
 
 async function revealItem(path) {
@@ -179,22 +235,33 @@ async function revealItem(path) {
 
 function openBrowser(classification, category = "", developerMode = false) {
   state.classification = classification; state.category = category; state.developerMode = developerMode; state.query = ""; state.offset = 0; state.loadedItems = [];
-  $("#item-search").value = ""; $("#overview-view").classList.remove("active-view"); $("#browser-view").classList.add("active-view"); const meta = classifyMeta(classification);
+  $("#item-search").value = ""; $("#overview-view").classList.remove("active-view"); $("#developer-view").classList.remove("active-view"); $("#browser-view").classList.add("active-view"); const meta = classifyMeta(classification);
   $("#browser-symbol").className = `category-symbol ${meta.className}`; $("#browser-symbol").innerHTML = iconSvg(classification); $("#browser-eyebrow").textContent = developerMode ? "DEVELOPMENT STORAGE" : meta.eyebrow;
-  $("#browser-title").textContent = developerMode ? "Environments and artifacts" : category || meta.title; $("#browser-subtitle").textContent = developerMode ? "Select manually; directories can only be moved to Trash." : meta.subtitle;
-  const categories = categoriesFor(classification); const total = developerMode ? categories.reduce((sum, row) => sum + Number(row.size || 0), 0) : category ? Number(categories.find((row) => row.category === category)?.size || 0) : Number(state.summary.totals?.[classification] || 0);
+  $("#browser-title").textContent = category || (developerMode ? "Environments and artifacts" : meta.title); $("#browser-subtitle").textContent = developerMode ? "Review each resource before acting. Docker images are removed only through Docker." : meta.subtitle;
+  const categories = categoriesFor(classification); const total = category ? Number(categories.find((row) => row.category === category)?.size || 0) : developerMode ? categories.reduce((sum, row) => sum + Number(row.size || 0), 0) : Number(state.summary.totals?.[classification] || 0);
   $("#browser-total").textContent = formatBytes(total); populateCategoryFilter(categories, category, developerMode); $("#page-eyebrow").textContent = developerMode ? "DEVELOPMENT" : classification; $("#page-title").textContent = developerMode ? "Space your tools can rebuild." : meta.title;
   const safePlan = state.summary?.actionable_totals?.SAFE || { count: 0, size: 0 }; $("#clean-safe-button").hidden = classification !== "SAFE" || !safePlan.count; $("#clean-safe-button").disabled = !state.reportValid;
-  updateActiveNav(developerMode ? "developer" : classification); loadItems();
+  syncDeveloperSwitch(developerMode); updateActiveNav(developerMode ? "developer" : classification); loadItems();
 }
 
 function showOverview() {
-  state.developerMode = false; $("#browser-view").classList.remove("active-view"); $("#overview-view").classList.add("active-view"); $("#page-eyebrow").textContent = "STORAGE"; $("#page-title").textContent = "Your Mac, made clear."; updateActiveNav("overview");
+  state.developerMode = false; $("#browser-view").classList.remove("active-view"); $("#developer-view").classList.remove("active-view"); $("#overview-view").classList.add("active-view"); $("#page-eyebrow").textContent = "STORAGE"; $("#page-title").textContent = "Your Mac, made clear."; syncDeveloperSwitch(false); updateActiveNav("overview");
+}
+
+function syncDeveloperSwitch(enabled) {
+  $("#developer-mode-switch").checked = enabled; $(".developer-toggle").classList.toggle("enabled", enabled);
+  try { localStorage.setItem("mac-cleaner-developer-view", String(enabled)); } catch { /* Storage can be unavailable in private web views. */ }
+}
+
+function showDeveloperView() {
+  state.developerMode = true; state.classification = "REVIEW"; state.category = ""; state.selected.clear();
+  $("#overview-view").classList.remove("active-view"); $("#browser-view").classList.remove("active-view"); $("#developer-view").classList.add("active-view");
+  $("#page-eyebrow").textContent = "DEVELOPMENT"; $("#page-title").textContent = "Storage for the tools you build with."; syncDeveloperSwitch(true); updateActiveNav("developer"); renderDeveloperView(); updateSelectionBar();
 }
 
 function populateCategoryFilter(categories, selected, developerMode) {
   const select = $("#category-filter"); select.replaceChildren(); const all = createElement("option", "", developerMode ? "All tools" : "All categories"); all.value = developerMode ? "__developer__" : ""; select.append(all);
-  for (const row of categories) { const option = createElement("option", "", row.category); option.value = row.category; select.append(option); } select.value = developerMode ? "__developer__" : selected || "";
+  for (const row of categories) { const option = createElement("option", "", row.category); option.value = row.category; select.append(option); } select.value = selected || (developerMode ? "__developer__" : "");
 }
 
 function updateActiveNav(view) { $$(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === view)); }
@@ -211,15 +278,16 @@ function startScanPresentation() {
 
 async function runScan() {
   if (!isTauri) { showToast("The web view uses a demo report. Open the Tauri app to scan this Mac."); return; }
+  const returnToDeveloperView = state.developerMode;
   const finish = startScanPresentation();
-  try { state.summary = await invoke("scan_storage", { developer: true, large: true }); state.reportValid = true; state.selected.clear(); renderSummary(); showOverview(); updateSelectionBar(); showToast("Scan complete. No files were modified."); }
+  try { state.summary = await invoke("scan_storage", { developer: true, large: true }); state.reportValid = true; state.selected.clear(); renderSummary(); if (returnToDeveloperView) showDeveloperView(); else showOverview(); updateSelectionBar(); showToast("Scan complete. No files were modified."); }
   catch (error) { showToast(String(error), true); } finally { finish(); }
 }
 
 const dataSource = {
   async listItems(filters) {
     if (isTauri) return invoke("list_items", filters); let items = state.sampleReport?.items || []; items = items.filter((item) => item.classification === filters.classification);
-    if (filters.category === "__developer__") items = items.filter((item) => /developer|docker|xcode|gradle|npm|python|homebrew/i.test(item.category)); else if (filters.category) items = items.filter((item) => item.category === filters.category);
+    if (filters.category === "__developer__") items = items.filter((item) => isDeveloperCategory(item.category)); else if (filters.category) items = items.filter((item) => item.category === filters.category);
     if (filters.query) { const query = filters.query.toLowerCase(); items = items.filter((item) => [item.path, item.reason, item.category].some((text) => String(text || "").toLowerCase().includes(query))); }
     items.sort((a, b) => Number(b.size || 0) - Number(a.size || 0)); return { total: items.length, items: items.slice(filters.offset, filters.offset + filters.limit) };
   },
@@ -242,8 +310,10 @@ async function openCleanupDialog(kind) {
   } else {
     const items = [...state.selected.values()], mode = kind === "delete" ? "delete" : "trash";
     plan = { classification: "REVIEW", mode, paths: items.map((item) => item.path), allSafe: false, count: items.length, size: items.reduce((sum, item) => sum + Number(item.size || 0), 0), items };
-    $("#cleanup-eyebrow").textContent = mode === "trash" ? "REVERSIBLE ACTION" : "IRREVERSIBLE ACTION"; $("#cleanup-title").textContent = mode === "trash" ? "Move selection to Trash?" : "Delete selection permanently?";
-    $("#cleanup-description").textContent = mode === "trash" ? "Items will be moved atomically to your Trash. They will not be copied or deleted across file systems." : "This option bypasses Trash and only supports individual regular files. It cannot be undone.";
+    const dockerOnly = items.length > 0 && items.every(isDockerImage);
+    $("#cleanup-eyebrow").textContent = dockerOnly ? "DOCKER REMOVAL" : mode === "trash" ? "REVERSIBLE ACTION" : "IRREVERSIBLE ACTION";
+    $("#cleanup-title").textContent = dockerOnly ? "Remove selected Docker images?" : mode === "trash" ? "Move selection to Trash?" : "Delete selection permanently?";
+    $("#cleanup-description").textContent = dockerOnly ? "Each image is checked again and removed through Docker without force. Docker refuses images that are still used by a container. This cannot be undone." : mode === "trash" ? "Items will be moved atomically to your Trash. They will not be copied or deleted across file systems." : "This option bypasses Trash and only supports individual regular files. It cannot be undone.";
   }
   state.cleanupPlan = plan; state.dialogMode = "confirm"; $("#cleanup-summary").textContent = `${plan.count.toLocaleString("en-US")} items · ${formatBytes(plan.size)} estimated`; dialogPreview(plan.items, 24, plan.count);
   $("#cleanup-ack-row").hidden = kind !== "safe"; $("#cleanup-ack").checked = false; $("#cleanup-phrase-row").hidden = kind !== "delete"; $("#cleanup-phrase").value = "";
@@ -286,8 +356,10 @@ function showCompletion(record) {
 
 function bindEvents() {
   $("#scan-button").addEventListener("click", runScan); $$('[data-open-classification]').forEach((button) => button.addEventListener("click", () => openBrowser(button.dataset.openClassification)));
-  $$(".nav-item").forEach((button) => button.addEventListener("click", () => { const view = button.dataset.view; if (view === "overview") showOverview(); else if (view === "developer") openBrowser("REVIEW", "", true); else openBrowser(view); }));
-  $("#category-filter").addEventListener("change", (event) => { state.category = event.target.value === "__developer__" ? "" : event.target.value; state.developerMode = event.target.value === "__developer__"; state.offset = 0; state.loadedItems = []; loadItems(); });
+  $$(".nav-item").forEach((button) => button.addEventListener("click", () => { const view = button.dataset.view; if (view === "overview") showOverview(); else openBrowser(view); }));
+  $("#developer-mode-switch").addEventListener("change", (event) => { if (event.target.checked) showDeveloperView(); else showOverview(); });
+  $("#developer-browse-all").addEventListener("click", () => openBrowser("REVIEW", "", true));
+  $("#category-filter").addEventListener("change", (event) => { state.category = event.target.value === "__developer__" ? "" : event.target.value; state.offset = 0; state.loadedItems = []; loadItems(); });
   let searchTimer; $("#item-search").addEventListener("input", (event) => { clearTimeout(searchTimer); searchTimer = setTimeout(() => { state.query = event.target.value.trim(); state.offset = 0; state.loadedItems = []; loadItems(); }, 180); });
   $("#load-more").addEventListener("click", () => { state.offset += state.limit; loadItems({ append: true }); }); $("#settings-button").addEventListener("click", () => $("#policy-dialog").showModal()); $("#policy-close").addEventListener("click", () => $("#policy-dialog").close());
   $("#select-visible").addEventListener("change", (event) => {
@@ -308,8 +380,9 @@ function bindEvents() {
 }
 
 async function initialize() {
-  bindEvents(); if (isTauri) { $("#scan-status-label").textContent = "Ready to scan"; await runScan(); return; }
-  try { state.sampleReport = await fetch("sample-report.json").then((response) => { if (!response.ok) throw new Error("Could not load the demo report"); return response.json(); }); state.summary = summarizeReport(state.sampleReport); state.reportValid = false; renderSummary(); }
+  bindEvents(); try { state.developerMode = localStorage.getItem("mac-cleaner-developer-view") === "true"; } catch { state.developerMode = false; }
+  if (isTauri) { $("#scan-status-label").textContent = "Ready to scan"; await runScan(); return; }
+  try { state.sampleReport = await fetch("sample-report.json").then((response) => { if (!response.ok) throw new Error("Could not load the demo report"); return response.json(); }); state.summary = summarizeReport(state.sampleReport); state.reportValid = false; renderSummary(); if (state.developerMode) showDeveloperView(); else showOverview(); }
   catch (error) { showToast(String(error), true); }
 }
 
