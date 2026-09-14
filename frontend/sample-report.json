@@ -1,0 +1,41 @@
+{
+  "generated_at": "2026-09-13T20:28:00-06:00",
+  "platform": { "system": "Darwin", "macos_version": "26.6.2", "architecture": "arm64", "python": "3.12.7" },
+  "storage": { "capacity": 494384795648, "used": 473628000000, "available": 20756795648 },
+  "home_size": 305372294758,
+  "totals": { "SAFE": 9878424781, "REVIEW": 44560285696, "PROTECTED": 120755313869 },
+  "home_breakdown": [
+    { "path": "/Users/morgan/Library", "size": 195957882880, "policy": "STATS ONLY" },
+    { "path": "/Users/morgan/.ollama", "size": 19756849562, "policy": "STATS ONLY" },
+    { "path": "/Users/morgan/Pictures", "size": 11274289152, "policy": "PROTECTED" },
+    { "path": "/Users/morgan/.gradle", "size": 10200547328, "policy": "STATS ONLY" },
+    { "path": "/Users/morgan/.android", "size": 10194763776, "policy": "STATS ONLY" },
+    { "path": "/Users/morgan/Proyectos", "size": 6120328397, "policy": "STATS ONLY" }
+  ],
+  "items": [
+    { "path": "/Users/morgan/Library/Caches", "category": "App caches", "classification": "SAFE", "size": 6012954214, "reason": "Archivos de caché antiguos, cerrados y propiedad del usuario", "proposed_action": "Vista previa únicamente" },
+    { "path": "/Users/morgan/.npm/_cacache", "category": "npm cache", "classification": "SAFE", "size": 2684354560, "reason": "Caché regenerable de paquetes", "proposed_action": "Usar el gestor oficial tras confirmar" },
+    { "path": "/Users/morgan/Library/Caches/pip", "category": "Python package cache", "classification": "SAFE", "size": 710619136, "reason": "Caché regenerable de wheels y descargas", "proposed_action": "Usar pip tras confirmar" },
+    { "path": "/opt/homebrew/Library/Homebrew/vendor/portable-ruby", "category": "Homebrew official cleanup", "classification": "SAFE", "size": 422890700, "reason": "Homebrew lo identificó mediante brew cleanup --dry-run", "proposed_action": "Usar brew cleanup tras confirmar" },
+    { "path": "/Users/morgan/Library/Logs", "category": "Old logs", "classification": "SAFE", "size": 25802752, "reason": "Logs antiguos; los recientes y abiertos se conservan", "proposed_action": "Vista previa únicamente" },
+
+    { "path": "docker://build-cache", "category": "Docker — Build Cache", "classification": "REVIEW", "size": 21152713932, "reason": "Docker reporta esta caché como recuperable", "proposed_action": "Revisar por separado" },
+    { "path": "docker://images", "category": "Docker — Images", "classification": "REVIEW", "size": 7623566950, "reason": "Imágenes sin uso aparente; pueden ser costosas de descargar", "proposed_action": "Inspeccionar objetos individualmente" },
+    { "path": "/Users/morgan/.gradle/caches", "category": "Gradle cache", "classification": "REVIEW", "size": 6764573491, "reason": "Puede contener dependencias necesarias para trabajar sin conexión", "proposed_action": "Revisar" },
+    { "path": "docker://local-volumes", "category": "Docker — Local Volumes", "classification": "REVIEW", "size": 3865470566, "reason": "Los volúmenes pueden contener bases de datos irreemplazables", "proposed_action": "Nunca eliminar automáticamente" },
+    { "path": "/Users/morgan/Proyectos/Freelance/Personals/slotflow/.venv", "category": "Developer — .venv", "classification": "REVIEW", "size": 562141593, "reason": "Entorno de proyecto que puede ser costoso de reproducir", "proposed_action": "Revisar el proyecto" },
+    { "path": "/Users/morgan/Proyectos/Freelance/Others/Megaroll/backend/node_modules", "category": "Developer — node_modules", "classification": "REVIEW", "size": 551026688, "reason": "Dependencias del proyecto; nunca automáticas", "proposed_action": "Revisar el proyecto" },
+    { "path": "docker://containers", "category": "Docker — Containers", "classification": "REVIEW", "size": 711668531, "reason": "Contenedores detenidos que aún pueden tener valor", "proposed_action": "Inspeccionar individualmente" },
+    { "path": "/Users/morgan/Proyectos/Freelance/1Squad/Cronos/pruebas/venv", "category": "Developer — venv", "classification": "REVIEW", "size": 322437120, "reason": "Entorno virtual del proyecto", "proposed_action": "Revisar" },
+
+    { "path": "/Users/morgan/Library/Containers", "category": "Protected user data", "classification": "PROTECTED", "size": 56049323213, "reason": "Contenedores de aplicaciones protegidos", "proposed_action": "Solo informar" },
+    { "path": "/Users/morgan/Library/Mobile Documents", "category": "Protected user data", "classification": "PROTECTED", "size": 44452911513, "reason": "iCloud Drive está protegido", "proposed_action": "Solo informar" },
+    { "path": "/Users/morgan/Pictures", "category": "Protected user data", "classification": "PROTECTED", "size": 11274289152, "reason": "Bibliotecas y fotografías personales protegidas", "proposed_action": "Solo informar" },
+    { "path": "/Users/morgan/Library/Group Containers", "category": "Protected user data", "classification": "PROTECTED", "size": 4831838208, "reason": "Contenedores compartidos de aplicaciones", "proposed_action": "Solo informar" },
+    { "path": "/Users/morgan/Downloads", "category": "Protected user data", "classification": "PROTECTED", "size": 2684354560, "reason": "Downloads contiene un worktree Git; la protección de código fuente tiene prioridad", "proposed_action": "Rechazar limpieza" },
+    { "path": "/Users/morgan/Desktop", "category": "Protected user data", "classification": "PROTECTED", "size": 1073741824, "reason": "El Escritorio contiene datos personales", "proposed_action": "Solo informar" },
+    { "path": "/Users/morgan/Documents", "category": "Protected user data", "classification": "PROTECTED", "size": 672242074, "reason": "Documentos personales protegidos", "proposed_action": "Solo informar" }
+  ],
+  "notices": ["Informe de demostración para la vista web."],
+  "errors": []
+}
