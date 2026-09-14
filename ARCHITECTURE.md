@@ -36,8 +36,11 @@ REVIEW deletion accepts regular files only. Trash and audit destinations are
 checked for symlink/ownership attacks before use.
 
 Homebrew and unavailable Simulator cleanup are delegated to their supported tools
-after a fresh preview/query. Docker, volumes, Time Machine snapshots, simulator
-runtimes, Trash aggregates, and unclear package-manager results remain advisory.
+after a fresh preview/query. Individually scanned Docker images are re-inspected
+and passed to `docker image rm` without force after explicit permanent-delete
+confirmation; Docker remains the final in-use guard. Docker volumes, containers,
+build cache, Time Machine snapshots, simulator runtimes, Trash aggregates, and
+unclear package-manager results remain advisory.
 
 ## Modules
 

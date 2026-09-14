@@ -77,8 +77,13 @@ at confirmation time.
 - `node_modules`, `.venv`, `venv`, `.next`, `build`, `dist`, and Gradle caches.
 - Duplicates confirmed through size, partial hash, and full SHA-256.
 
-Docker volumes, snapshots, runtimes, and other entries without an unambiguous
-direct action appear as information without a checkbox.
+The Developer view is enabled from its sidebar switch and groups Docker, Xcode,
+project dependencies, and package caches away from personal storage. Docker
+images are shown individually by tag and image ID. An explicitly selected image
+can be removed through `docker image rm` only after typing the permanent-delete
+confirmation; the app never uses `--force`, so Docker rejects images still used
+by containers. Docker volumes, containers, build cache, snapshots, runtimes,
+and other entries without an unambiguous direct action remain informational.
 
 ### Protected locations
 
