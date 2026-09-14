@@ -39,7 +39,7 @@ fn scanner_script(app: &AppHandle) -> Result<PathBuf, String> {
         }
     }
 
-    bundled.ok_or_else(|| "No se encontró el escáner Python incluido en Resources".to_string())
+    bundled.ok_or_else(|| "The bundled Python scanner was not found in Resources".to_string())
 }
 
 fn python_candidates() -> Vec<PathBuf> {
@@ -58,7 +58,7 @@ fn python_candidates() -> Vec<PathBuf> {
 }
 
 fn run_python_scan(script: &Path, developer: bool, large: bool) -> Result<Value, String> {
-    let mut last_error = String::from("No se encontró Python 3.10 o posterior.");
+    let mut last_error = String::from("Python 3.10 or later was not found.");
     for python in python_candidates() {
         let version = Command::new(&python).arg("--version").output();
         if version.is_err() {
@@ -76,13 +76,13 @@ fn run_python_scan(script: &Path, developer: bool, large: bool) -> Result<Value,
         match command.output() {
             Ok(output) if output.status.success() => {
                 return serde_json::from_slice(&output.stdout)
-                    .map_err(|error| format!("El escáner devolvió JSON inválido: {error}"));
+                    .map_err(|error| format!("The scanner returned invalid JSON: {error}"));
             }
             Ok(output) => {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                last_error = format!("El escáner falló con {}: {}", output.status, stderr.trim());
+                last_error = format!("The scanner failed with {}: {}", output.status, stderr.trim());
             }
-            Err(error) => last_error = format!("No se pudo ejecutar {}: {error}", python.display()),
+            Err(error) => last_error = format!("Could not run {}: {error}", python.display()),
         }
     }
     Err(last_error)
@@ -95,8 +95,8 @@ fn run_python_cleanup(
     items: Vec<Value>,
 ) -> Result<Value, String> {
     let manifest = serde_json::to_vec(&json!({"items": items}))
-        .map_err(|error| format!("No se pudo preparar el manifiesto: {error}"))?;
-    let mut last_error = String::from("No se encontró Python 3.10 o posterior.");
+        .map_err(|error| format!("Could not prepare the manifest: {error}"))?;
+    let mut last_error = String::from("Python 3.10 or later was not found.");
     for python in python_candidates() {
         if Command::new(&python).arg("--version").output().is_err() {
             continue;
@@ -117,30 +117,30 @@ fn run_python_cleanup(
         {
             Ok(child) => child,
             Err(error) => {
-                last_error = format!("No se pudo ejecutar {}: {error}", python.display());
+                last_error = format!("Could not run {}: {error}", python.display());
                 continue;
             }
         };
         if let Some(mut stdin) = child.stdin.take() {
             if let Err(error) = stdin.write_all(&manifest) {
                 let _ = child.kill();
-                last_error = format!("No se pudo enviar el plan al ejecutor: {error}");
+                last_error = format!("Could not send the plan to the executor: {error}");
                 continue;
             }
         }
         match child.wait_with_output() {
             Ok(output) if output.status.success() => {
                 return serde_json::from_slice(&output.stdout)
-                    .map_err(|error| format!("El ejecutor devolvió JSON inválido: {error}"));
+                    .map_err(|error| format!("The executor returned invalid JSON: {error}"));
             }
             Ok(output) => {
                 last_error = format!(
-                    "El ejecutor se negó a continuar ({}): {}",
+                    "The executor refused to continue ({}): {}",
                     output.status,
                     String::from_utf8_lossy(&output.stderr).trim()
                 );
             }
-            Err(error) => last_error = format!("El proceso de limpieza falló: {error}"),
+            Err(error) => last_error = format!("The cleanup process failed: {error}"),
         }
     }
     Err(last_error)
@@ -165,7 +165,7 @@ fn report_summary(report: &Value) -> Value {
             let category = item
                 .get("category")
                 .and_then(Value::as_str)
-                .unwrap_or("Otros");
+                .unwrap_or("Other");
             let size = item.get("size").and_then(Value::as_u64).unwrap_or(0);
             let entry = categories
                 .entry((classification.to_string(), category.to_string()))
@@ -256,12 +256,12 @@ async fn scan_storage(
     let report =
         tauri::async_runtime::spawn_blocking(move || run_python_scan(&script, developer, large))
             .await
-            .map_err(|error| format!("La tarea de análisis se interrumpió: {error}"))??;
+            .map_err(|error| format!("The scan task was interrupted: {error}"))??;
     let summary = report_summary(&report);
     *state
         .0
         .lock()
-        .map_err(|_| "No se pudo bloquear el informe".to_string())? = Some(report);
+        .map_err(|_| "Could not lock the report".to_string())? = Some(report);
     Ok(summary)
 }
 
@@ -277,10 +277,10 @@ fn list_items(
     let guard = state
         .0
         .lock()
-        .map_err(|_| "No se pudo leer el informe".to_string())?;
+        .map_err(|_| "Could not read the report".to_string())?;
     let report = guard
         .as_ref()
-        .ok_or_else(|| "Primero ejecuta un análisis".to_string())?;
+        .ok_or_else(|| "Run a scan first".to_string())?;
     let needle = query.unwrap_or_default().to_lowercase();
     let mut matches: Vec<&Value> = report
         .get("items")
@@ -334,30 +334,30 @@ fn list_items(
 #[tauri::command]
 fn reveal_path(path: String) -> Result<(), String> {
     if path.contains("://") {
-        return Err("Este elemento no representa una ruta local".to_string());
+        return Err("This item does not represent a local path".to_string());
     }
     let requested = PathBuf::from(path);
     let canonical = requested
         .canonicalize()
-        .map_err(|error| format!("No se pudo resolver la ruta: {error}"))?;
+        .map_err(|error| format!("Could not resolve the path: {error}"))?;
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
-        .ok_or_else(|| "No se pudo determinar HOME".to_string())?
+        .ok_or_else(|| "Could not determine HOME".to_string())?
         .canonicalize()
-        .map_err(|error| format!("No se pudo resolver HOME: {error}"))?;
+        .map_err(|error| format!("Could not resolve HOME: {error}"))?;
     if canonical == home || !canonical.starts_with(&home) {
-        return Err("Solo se pueden revelar elementos dentro de tu carpeta personal".to_string());
+        return Err("Only items inside your home folder can be revealed".to_string());
     }
     let status = Command::new("/usr/bin/open")
         .arg("-R")
         .arg("--")
         .arg(&canonical)
         .status()
-        .map_err(|error| format!("No se pudo abrir Finder: {error}"))?;
+        .map_err(|error| format!("Could not open Finder: {error}"))?;
     if status.success() {
         Ok(())
     } else {
-        Err(format!("Finder devolvió {status}"))
+        Err(format!("Finder returned {status}"))
     }
 }
 
@@ -371,32 +371,32 @@ async fn execute_cleanup(
     all_safe: bool,
 ) -> Result<Value, String> {
     if classification != "SAFE" && classification != "REVIEW" {
-        return Err("Solo se admiten acciones SAFE o REVIEW".to_string());
+        return Err("Only SAFE or REVIEW actions are allowed".to_string());
     }
     if mode != "trash" && mode != "delete" {
-        return Err("Acción no reconocida".to_string());
+        return Err("Unrecognized action".to_string());
     }
     if classification == "SAFE" && (!all_safe || mode != "delete" || !paths.is_empty()) {
         return Err(
-            "SAFE solo admite limpiar todo el plan confirmado mediante borrado directo".to_string(),
+            "SAFE only supports cleaning the entire confirmed plan through direct deletion".to_string(),
         );
     }
     if classification == "REVIEW" && (all_safe || paths.is_empty() || paths.len() > 500) {
-        return Err("Selecciona entre 1 y 500 elementos REVIEW".to_string());
+        return Err("Select between 1 and 500 REVIEW items".to_string());
     }
 
     let selected = {
         let guard = state
             .0
             .lock()
-            .map_err(|_| "No se pudo leer el informe".to_string())?;
+            .map_err(|_| "Could not read the report".to_string())?;
         let report = guard
             .as_ref()
-            .ok_or_else(|| "El informe ya no es válido; analiza de nuevo".to_string())?;
+            .ok_or_else(|| "The report is no longer valid; scan again".to_string())?;
         let items = report
             .get("items")
             .and_then(Value::as_array)
-            .ok_or_else(|| "El informe no contiene elementos".to_string())?;
+            .ok_or_else(|| "The report contains no items".to_string())?;
         if classification == "SAFE" {
             items
                 .iter()
@@ -408,7 +408,7 @@ async fn execute_cleanup(
             let requested: std::collections::BTreeSet<&str> =
                 paths.iter().map(String::as_str).collect();
             if requested.len() != paths.len() {
-                return Err("La selección contiene rutas duplicadas".to_string());
+                return Err("The selection contains duplicate paths".to_string());
             }
             let chosen: Vec<Value> = items
                 .iter()
@@ -423,7 +423,7 @@ async fn execute_cleanup(
                 .collect();
             if chosen.len() != requested.len() {
                 return Err(
-                    "La selección incluye elementos inexistentes, protegidos o no accionables"
+                    "The selection includes missing, protected, or non-actionable items"
                         .to_string(),
                 );
             }
@@ -431,7 +431,7 @@ async fn execute_cleanup(
         }
     };
     if selected.is_empty() {
-        return Err("No hay elementos accionables en este plan".to_string());
+        return Err("This plan contains no actionable items".to_string());
     }
     let script = scanner_script(&app)?;
     let task_classification = classification.clone();
@@ -440,11 +440,11 @@ async fn execute_cleanup(
         run_python_cleanup(&script, &task_classification, &task_mode, selected)
     })
     .await
-    .map_err(|error| format!("La tarea de limpieza se interrumpió: {error}"))??;
+    .map_err(|error| format!("The cleanup task was interrupted: {error}"))??;
     *state
         .0
         .lock()
-        .map_err(|_| "No se pudo invalidar el informe".to_string())? = None;
+        .map_err(|_| "Could not invalidate the report".to_string())? = None;
     Ok(compact_cleanup_record(record))
 }
 

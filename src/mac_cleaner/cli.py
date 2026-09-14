@@ -129,8 +129,8 @@ def main(argv: list[str] | None = None) -> int:
         if not sys.stdin.isatty():
             print("Refused: interactive confirmation requires a terminal. Use the desktop app or --dry-run.", file=sys.stderr)
             return 2
-        confirmation = input("\nType LIMPIAR SEGURO to execute exactly this SAFE plan: ")
-        if confirmation != "LIMPIAR SEGURO":
+        confirmation = input("\nType CLEAN SAFELY to execute exactly this SAFE plan: ")
+        if confirmation != "CLEAN SAFELY":
             print("Cancelled. Nothing was changed.")
             return 1
         record = execute_items(actionable, mode="delete", classification="SAFE")

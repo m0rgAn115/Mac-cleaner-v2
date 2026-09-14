@@ -5,218 +5,216 @@
 <h1 align="center">Mac Cleaner Local</h1>
 
 <p align="center">
-  Analiza, entiende y recupera espacio en macOS sin convertir la limpieza<br />
-  en una apuesta contra tus archivos importantes.
+  Scan, understand, and reclaim space on macOS without turning cleanup<br />
+  into a gamble with your important files.
 </p>
 
 <p align="center">
   <img alt="macOS" src="https://img.shields.io/badge/macOS-12%2B-111827?style=flat-square&logo=apple&logoColor=white" />
-  <img alt="Apple Silicon" src="https://img.shields.io/badge/Apple%20Silicon-nativo-111827?style=flat-square" />
+  <img alt="Apple Silicon" src="https://img.shields.io/badge/Apple%20Silicon-native-111827?style=flat-square" />
   <img alt="Python" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white" />
   <img alt="Tauri" src="https://img.shields.io/badge/Tauri-2-24C8DB?style=flat-square&logo=tauri&logoColor=white" />
-  <img alt="Privacidad" src="https://img.shields.io/badge/datos-100%25%20locales-20B783?style=flat-square" />
+  <img alt="Privacy" src="https://img.shields.io/badge/data-100%25%20local-20B783?style=flat-square" />
 </p>
 
 ---
 
-![Resumen de almacenamiento de Mac Cleaner Local](./docs/screenshots/overview.png)
+![Mac Cleaner Local storage overview](./docs/screenshots/overview.png)
 
-## ¿Qué es?
+## What is it?
 
-**Mac Cleaner Local** es una aplicación de escritorio para macOS inspirada en las
-funciones de limpieza de almacenamiento de CleanMyMac. Su propósito no es mostrar
-la cifra más grande posible de “basura”, sino responder con claridad:
+**Mac Cleaner Local** is a macOS desktop app inspired by CleanMyMac's storage
+cleanup features. Its purpose is not to display the largest possible amount of
+“junk,” but to answer clearly:
 
-- ¿Dónde se está consumiendo el almacenamiento?
-- ¿Qué archivos son regenerables y razonablemente seguros de limpiar?
-- ¿Qué podría liberar mucho espacio, pero requiere una decisión humana?
-- ¿Qué ubicaciones no debe tocar nunca un limpiador?
+- Where is storage being used?
+- Which files are regenerable and reasonably safe to clean?
+- What could free a lot of space but requires a human decision?
+- Which locations should a cleaner never touch?
 
-El análisis y el procesamiento ocurren en el Mac. No sube nombres de archivos,
-rutas, hashes ni estadísticas a servicios externos.
+Scanning and processing happen on the Mac. File names, paths, hashes, and
+statistics are never uploaded to external services.
 
-## Diseñado alrededor de la seguridad
+## Designed around safety
 
-Cada resultado pertenece a una de tres categorías:
+Every result belongs to one of three categories:
 
-| Categoría | Significado | Comportamiento |
+| Category | Meaning | Behavior |
 |:--|:--|:--|
-| 🟢 **SAFE** | Datos antiguos y regenerables bajo raíces conocidas | Se muestran primero; limpiarlos requiere confirmación explícita |
-| 🟠 **REVIEW** | Archivos potencialmente valiosos o costosos de reconstruir | Nada se preselecciona; el usuario elige cada elemento con un checkbox |
-| ⚪️ **PROTECTED** | Datos personales, credenciales, código, apps o sistema | Solo estadísticas; la aplicación se niega a modificarlos |
+| 🟢 **SAFE** | Old, regenerable data under known roots | Shown first; cleaning requires explicit confirmation |
+| 🟠 **REVIEW** | Potentially valuable or expensive-to-rebuild files | Nothing is preselected; the user chooses each item with a checkbox |
+| ⚪️ **PROTECTED** | Personal data, credentials, code, apps, or system data | Statistics only; the app refuses to modify them |
 
-> La regla principal es sencilla: ante una duda, SAFE se convierte en REVIEW;
-> ante una ambigüedad importante, REVIEW se convierte en PROTECTED.
+> The main rule is simple: when in doubt, SAFE becomes REVIEW; when there is
+> significant ambiguity, REVIEW becomes PROTECTED.
 
-![Política de seguridad dentro de la aplicación](./docs/screenshots/safety-policy.png)
+![Safety policy inside the app](./docs/screenshots/safety-policy.png)
 
-## Qué puede analizar
+## What it can analyze
 
-### Limpieza segura y regenerable
+### Safe, regenerable cleanup
 
-- Cachés antiguas de aplicaciones en `~/Library/Caches`.
-- Logs de usuario y reportes de diagnóstico antiguos.
-- Xcode DerivedData, documentación y module caches.
-- Dispositivos de simulador que `simctl` marca como no disponibles.
-- Elementos que el propio Homebrew identifica mediante `brew cleanup --dry-run`.
-- Cachés de npm, pnpm y Python, reportadas conservadoramente cuando una limpieza
-  oficial sería demasiado amplia para ejecutarla con confianza.
+- Old application caches in `~/Library/Caches`.
+- Old user logs and diagnostic reports.
+- Xcode DerivedData, documentation, and module caches.
+- Simulator devices that `simctl` marks as unavailable.
+- Items identified by Homebrew itself through `brew cleanup --dry-run`.
+- npm, pnpm, and Python caches, reported conservatively when an official cleanup
+  would be too broad to run with confidence.
 
-Los archivos recientes, abiertos, ajenos al usuario o modificados después del
-análisis quedan fuera o son rechazados al confirmar.
+Recent, open, non-user-owned, or post-scan-modified files are excluded or rejected
+at confirmation time.
 
-### Elementos que siempre requieren revisión
+### Items that always require review
 
-- Downloads, instaladores, imágenes de disco y archivos comprimidos.
-- Archivos grandes o antiguos. **Antiguo nunca significa inútil.**
-- Backups locales de iPhone y iPad.
-- Xcode Archives, Device Support y runtimes instalados.
-- Imágenes, contenedores, volúmenes y build cache de Docker.
-- Snapshots locales de Time Machine.
-- Papelera.
-- `node_modules`, `.venv`, `venv`, `.next`, `build`, `dist` y caches de Gradle.
-- Duplicados confirmados mediante tamaño, hash parcial y SHA-256 completo.
+- Downloads, installers, disk images, and archives.
+- Large or old files. **Old never means useless.**
+- Local iPhone and iPad backups.
+- Xcode Archives, Device Support, and installed runtimes.
+- Docker images, containers, volumes, and build cache.
+- Local Time Machine snapshots.
+- Trash.
+- `node_modules`, `.venv`, `venv`, `.next`, `build`, `dist`, and Gradle caches.
+- Duplicates confirmed through size, partial hash, and full SHA-256.
 
-Docker volumes, snapshots, runtimes y otras entradas sin una acción directa
-inequívoca aparecen como información sin checkbox.
+Docker volumes, snapshots, runtimes, and other entries without an unambiguous
+direct action appear as information without a checkbox.
 
-### Ubicaciones protegidas
+### Protected locations
 
-La aplicación rechaza, entre otras:
+The app refuses, among others:
 
 ```text
 /System              /Library                 ~/.ssh
 /bin                 /private                 ~/.aws
 /sbin                /var                     ~/.config
-/usr                 /Applications            archivos .env
+/usr                 /Applications            .env files
 
-Documents · Desktop · Fotos · Música · Mail · Messages · Safari
+Documents · Desktop · Pictures · Music · Mail · Messages · Safari
 iCloud Drive · Dropbox · OneDrive · Google Drive
-Library/Containers · Library/Group Containers · repositorios Git
-aplicaciones .app · bibliotecas multimedia · credenciales
+Library/Containers · Library/Group Containers · Git repositories
+.app applications · media libraries · credentials
 ```
 
-No modifica bundles firmados, no elimina arquitecturas de Universal Binaries y no
-borra recursivamente directorios del sistema.
+It does not modify signed bundles, remove Universal Binary architectures, or
+recursively delete system directories.
 
-## Flujo de uso
+## Usage flow
 
-1. Abre **Mac Cleaner Local**.
-2. La aplicación ejecuta un análisis inicial de solo lectura.
-3. Revisa el resumen y abre SAFE, REVIEW o PROTECTED para ver rutas exactas.
-4. Para SAFE, inspecciona el plan y confirma la limpieza.
-5. Para REVIEW, selecciona manualmente los archivos deseados.
-6. Usa **Mover a Papelera** como opción normal. El borrado permanente está limitado
-   a archivos regulares individuales y exige escribir `ELIMINAR`.
-7. Tras una acción, el informe se invalida y debe generarse uno nuevo.
+1. Open **Mac Cleaner Local**.
+2. The app runs an initial read-only scan.
+3. Review the summary and open SAFE, REVIEW, or PROTECTED to see exact paths.
+4. For SAFE, inspect the plan and confirm cleanup.
+5. For REVIEW, manually select the files you want.
+6. Use **Move to Trash** as the normal option. Permanent deletion is limited to
+   individual regular files and requires typing `DELETE`.
+7. After an action, the report is invalidated and a new one must be generated.
 
-Mover algo a la Papelera no se contabiliza como espacio recuperado hasta que la
-Papelera sea vaciada.
+Moving something to Trash is not counted as reclaimed space until Trash is emptied.
 
-## Comprobaciones antes de cada acción
+## Checks before every action
 
-Justo antes de tocar un elemento, el ejecutor central vuelve a comprobar:
+Immediately before touching an item, the central executor checks again:
 
-- dispositivo, inode, tamaño y fecha de modificación;
-- propietario actual;
-- ausencia de symlinks en toda la ruta;
-- pertenencia a una raíz de limpieza permitida;
-- clasificación y coincidencia exacta con el informe conservado por Tauri;
-- exclusiones persistentes y directorios protegidos;
-- que no sea `/`, el HOME del usuario ni una ruta sospechosamente amplia.
+- device, inode, size, and modification time;
+- current owner;
+- absence of symlinks anywhere in the path;
+- membership in an allowed cleanup root;
+- classification and exact match with the report held by Tauri;
+- persistent exclusions and protected directories;
+- that it is not `/`, the user's HOME, or a suspiciously broad path.
 
-Las rutas nunca se concatenan en comandos de shell. Los directorios REVIEW solo se
-mueven mediante un rename atómico a `~/.Trash`; no existe fallback de
-copiar-y-borrar entre sistemas de archivos.
+Paths are never concatenated into shell commands. REVIEW directories are moved only
+through an atomic rename to `~/.Trash`; there is no cross-filesystem copy-and-delete
+fallback.
 
-## Auditoría
+## Audit trail
 
-Cada operación genera un registro JSON en:
+Each operation generates a JSON record in:
 
 ```text
 ~/.local/share/mac-cleaner/history/
 ```
 
-El registro incluye fecha, versión de macOS, acción, ruta original, tamaño,
-categoría, motivo y resultado. El espacio recuperado se mide con el almacenamiento
-disponible antes y después; no se afirma que se liberaron gigabytes sumando simples
-estimaciones.
+The record includes the date, macOS version, action, original path, size,
+classification, reason, and result. Reclaimed space is measured using available
+storage before and after; it is not claimed by simply adding estimates.
 
 ```console
 ./mac-cleaner history
 ```
 
-## Aplicación de escritorio
+## Desktop app
 
-La interfaz está construida con **Tauri 2 + HTML/CSS/JavaScript** y sigue una
-estética nativa de macOS basada en capas translúcidas, profundidad, tipografía del
-sistema y controles con jerarquía visual clara.
+The interface is built with **Tauri 2 + HTML/CSS/JavaScript** and follows a native
+macOS aesthetic built around translucent layers, depth, system typography, and
+controls with a clear visual hierarchy.
 
-La build local queda disponible en:
+The local build is available at:
 
 ```text
 ~/Applications/Mac Cleaner Local.app
 ```
 
-También se genera un DMG para Apple Silicon en:
+A DMG for Apple Silicon is also generated at:
 
 ```text
 src-tauri/target/release/bundle/dmg/Mac Cleaner Local_0.2.0_aarch64.dmg
 ```
 
-> La build local utiliza firma ad-hoc y no está notarizada por Apple. Para
-> distribución pública se necesita un certificado Developer ID y notarización.
+> The local build uses ad-hoc signing and is not notarized by Apple. Public
+> distribution requires a Developer ID certificate and notarization.
 
 ## CLI
 
-El motor Python también puede usarse desde Terminal. Ejecutar `mac-cleaner` sin
-subcomando **nunca borra nada**.
+The Python engine can also be used from Terminal. Running `mac-cleaner` without a
+subcommand **never deletes anything**.
 
-| Comando | Función |
+| Command | Function |
 |:--|:--|
-| `./mac-cleaner` | Resumen de almacenamiento, equivalente a `scan` |
-| `./mac-cleaner scan --developer --large` | Análisis ampliado de desarrollo y archivos grandes |
-| `./mac-cleaner scan --details` | Muestra cada ruta candidata |
-| `./mac-cleaner large` | Archivos grandes y antiguos en ubicaciones acotadas |
-| `./mac-cleaner duplicates` | Duplicados verificados, comenzando por Downloads |
-| `./mac-cleaner clean --dry-run` | Plan SAFE exacto sin modificar archivos |
-| `./mac-cleaner clean` | Limpieza SAFE interactiva; exige `LIMPIAR SEGURO` |
-| `./mac-cleaner history` | Historial de auditorías |
-| `./mac-cleaner ignore PATH` | Excluye permanentemente una ruta |
+| `./mac-cleaner` | Storage summary, equivalent to `scan` |
+| `./mac-cleaner scan --developer --large` | Expanded scan of development and large files |
+| `./mac-cleaner scan --details` | Show every candidate path |
+| `./mac-cleaner large` | Large and old files in bounded locations |
+| `./mac-cleaner duplicates` | Verified duplicates, starting with Downloads |
+| `./mac-cleaner clean --dry-run` | Exact SAFE plan without modifying files |
+| `./mac-cleaner clean` | Interactive SAFE cleanup; requires `CLEAN SAFELY` |
+| `./mac-cleaner history` | Audit history |
+| `./mac-cleaner ignore PATH` | Permanently exclude a path |
 
-## Exclusiones y configuración
+## Exclusions and configuration
 
-La configuración reside en:
+Configuration lives at:
 
 ```text
 ~/.config/mac-cleaner/config.json
 ```
 
-Se pueden excluir rutas, patrones y categorías completas:
+Paths, patterns, and entire categories can be excluded:
 
 ```console
-./mac-cleaner ignore ~/Proyectos/cliente-importante
+./mac-cleaner ignore ~/Projects/important-client
 ./mac-cleaner ignore --pattern '*.keep-cache'
 ./mac-cleaner ignore --category 'App caches'
 ```
 
-Los umbrales de antigüedad, tamaño y límites de enumeración también son
-configurables. Las exclusiones se aplican antes de crear candidatos de limpieza.
+Age and size thresholds, as well as enumeration limits, are also configurable.
+Exclusions are applied before cleanup candidates are created.
 
-## Desarrollo
+## Development
 
-### Requisitos
+### Requirements
 
-- macOS 12 o posterior.
-- Python 3.10 o posterior.
-- Rust y Cargo.
-- Node.js y npm.
-- Tauri 2 CLI, instalado por las dependencias del proyecto.
+- macOS 12 or later.
+- Python 3.10 or later.
+- Rust and Cargo.
+- Node.js and npm.
+- Tauri 2 CLI, installed through the project dependencies.
 
-No se instala ninguna dependencia automáticamente y el funcionamiento normal no
-requiere `sudo`.
+No dependencies are installed automatically, and normal operation does not require
+`sudo`.
 
-### Ejecutar y compilar
+### Run and build
 
 ```console
 npm install
@@ -224,7 +222,7 @@ npm run dev
 npm run build
 ```
 
-### Pruebas
+### Tests
 
 ```console
 PYTHONPATH=src python3 -m unittest discover -s tests -v
@@ -232,40 +230,39 @@ cargo check --manifest-path src-tauri/Cargo.toml
 node --check frontend/app.js
 ```
 
-Las pruebas destructivas utilizan exclusivamente fixtures temporales. Incluyen
-intentos contra `/`, HOME, `~/.ssh`, Documents, `/System`, cambios posteriores al
-scan, escapes mediante symlinks y nombres con espacios, Unicode, saltos de línea,
-metacaracteres y guiones iniciales.
+Destructive tests use temporary fixtures exclusively. They include attempts against
+`/`, HOME, `~/.ssh`, Documents, `/System`, post-scan changes, symlink escapes, and
+names containing spaces, Unicode, newlines, metacharacters, and leading hyphens.
 
 ## Arquitectura
 
 ```text
-macOS + filesystem + herramientas nativas
+macOS + filesystem + native tools
                   │
                   ▼
-        scanners Python de solo lectura
+        read-only Python scanners
                   │
                   ▼
-        informe inmutable con identidades
+        immutable report with identities
                   │
                   ▼
-     estado sellado dentro del proceso Rust
+     sealed state inside the Rust process
              │                 │
              ▼                 ▼
-       interfaz paginada   selección exacta
+       paginated interface   exact selection
                                 │
                                 ▼
-                   revalidación centralizada
+                   centralized revalidation
                                 │
                                 ▼
-                     acción + auditoría JSON
+                     action + JSON audit
 ```
 
-Consulta [ARCHITECTURE.md](./ARCHITECTURE.md) para conocer los límites de confianza
-y las decisiones internas de seguridad.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for trust boundaries and internal safety
+decisions.
 
 ---
 
 <p align="center">
-  <strong>Recuperar menos espacio es aceptable. Borrar algo importante no lo es.</strong>
+  <strong>Recovering less space is acceptable. Deleting something important is not.</strong>
 </p>
