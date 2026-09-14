@@ -503,12 +503,53 @@ def scan_docker(ctx: ScanContext) -> list[ScanItem]:
         ctx.notices.append("Docker CLI exists, but the daemon did not provide storage usage.")
         return []
     items: list[ScanItem] = []
+    image_items: list[ScanItem] = []
+    image_rows: dict[str, dict[str, object]] = {}
+    images = _run([docker, "image", "ls", "--no-trunc", "--format", "{{json .}}"], timeout=30)
+    if images and images.returncode == 0:
+        for line in images.stdout.splitlines():
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            image_id = str(row.get("ID", "")).strip()
+            if not image_id:
+                continue
+            current = image_rows.setdefault(image_id, {"tags": [], "row": row})
+            repository = str(row.get("Repository", "<none>"))
+            tag = str(row.get("Tag", "<none>"))
+            label = f"{repository}:{tag}" if repository != "<none>" else "untagged image"
+            if label not in current["tags"]:
+                current["tags"].append(label)
+        for image_id, details in image_rows.items():
+            row = details["row"]
+            tags = details["tags"]
+            size_text = str(row.get("Size", "0B"))
+            label = tags[0] if tags else image_id
+            if len(tags) > 1:
+                label = f"{label} + {len(tags) - 1} tag(s)"
+            image_items.append(ScanItem(
+                path=f"docker://image/{image_id}", category="Docker — Images",
+                classification=Classification.REVIEW, size=_parse_size(size_text),
+                reason=f"{label}; created {row.get('CreatedSince', 'at an unknown time')}",
+                proposed_action=f"Remove this image with `docker image rm {image_id}`; Docker will refuse if it is in use",
+                metadata={
+                    "actionable": True, "execution_kind": "docker-image", "docker_id": image_id,
+                    "docker_tags": tags, "docker_created": row.get("CreatedSince"),
+                    "docker_size": size_text, "object_type": "docker-image",
+                },
+            ))
+    items.extend(image_items)
     for line in result.stdout.splitlines():
         try:
             row = json.loads(line)
         except json.JSONDecodeError:
             continue
         kind = row.get("Type", "Docker data")
+        if str(kind).lower() == "images" and image_items:
+            # Individual image rows above are the source of truth for the
+            # developer browser. Keeping the aggregate would double-count it.
+            continue
         size = _parse_size(str(row.get("Size", "0B")))
         reclaimable_text = str(row.get("Reclaimable", "0B")).split()[0]
         reclaimable = _parse_size(reclaimable_text)

@@ -189,6 +189,17 @@ class CleanupExecutorTests(unittest.TestCase):
         self.assertFalse(record["results"][0]["success"])
         self.assertIn("disabled", record["results"][0]["message"])
 
+    def test_docker_image_requires_explicit_permanent_removal(self) -> None:
+        item = {
+            "path": "docker://image/sha256:0123456789abcdef", "category": "Docker — Images",
+            "classification": "REVIEW", "size": 123, "reason": "fixture",
+            "metadata": {"actionable": True, "execution_kind": "docker-image",
+                         "docker_id": "sha256:0123456789abcdef", "object_type": "docker-image"},
+        }
+        record = self.execute([item], mode="trash", classification="REVIEW")
+        self.assertFalse(record["results"][0]["success"])
+        self.assertIn("explicit permanent removal", record["results"][0]["message"])
+
     def test_internal_manifest_endpoint_revalidates_and_audits_fixture(self) -> None:
         path = self.cache / "bridge.cache"
         path.write_bytes(b"bridge fixture")

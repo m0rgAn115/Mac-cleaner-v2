@@ -4,6 +4,7 @@ import errno
 import json
 import os
 import platform
+import re
 import shutil
 import stat
 import subprocess
@@ -169,6 +170,38 @@ def _run_manager(manager: str, category: str, original_size: int, reason: str) -
     return ActionResult(f"manager://{manager}", "manager cleanup", category, original_size, reason, False, "This manager action is intentionally not enabled")
 
 
+def _remove_docker_image(item: dict[str, Any], original_size: int, reason: str) -> ActionResult:
+    """Remove one scanned Docker image without force; Docker remains the final gate."""
+    metadata = item.get("metadata") if isinstance(item.get("metadata"), dict) else {}
+    path_text = str(item.get("path", "docker://image/unknown"))
+    category = str(item.get("category", "Docker — Images"))
+    image_id = str(metadata.get("docker_id", ""))
+    if not re.fullmatch(r"[A-Za-z0-9:_-]{12,}", image_id):
+        return ActionResult(path_text, "docker image rm", category, original_size, reason, False, "invalid Docker image identifier from scan")
+    docker = shutil.which("docker")
+    if not docker:
+        return ActionResult(path_text, "docker image rm", category, original_size, reason, False, "docker is unavailable")
+    try:
+        inspection = subprocess.run(
+            [docker, "image", "inspect", image_id], capture_output=True, text=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return ActionResult(path_text, "docker image rm", category, original_size, reason, False, f"could not revalidate image: {exc}")
+    if inspection.returncode != 0:
+        return ActionResult(path_text, "docker image rm", category, original_size, reason, False, "image is no longer available for removal")
+    try:
+        action = subprocess.run(
+            [docker, "image", "rm", image_id], capture_output=True, text=True, timeout=180, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return ActionResult(path_text, "docker image rm", category, original_size, reason, False, f"Docker removal failed: {exc}")
+    message = (action.stdout + "\n" + action.stderr).strip()[-4000:]
+    return ActionResult(
+        path_text, "docker image rm", category, original_size, reason, action.returncode == 0,
+        message or ("Docker image removed" if action.returncode == 0 else "Docker refused to remove this image"),
+    )
+
+
 def execute_items(
     items: Iterable[dict[str, Any]],
     *,
@@ -204,6 +237,12 @@ def execute_items(
             continue
         if metadata.get("actionable") is False:
             results.append(ActionResult(path_text, mode, category, size, reason, False, "scanner marked this item as advisory-only"))
+            continue
+        if metadata.get("execution_kind") == "docker-image":
+            if classification != Classification.REVIEW.value or mode != "delete":
+                results.append(ActionResult(path_text, mode, category, size, reason, False, "Docker images require an explicit permanent removal"))
+            else:
+                results.append(_remove_docker_image(item, size, reason))
             continue
         if metadata.get("execution_kind") == "supported-manager":
             key = (str(metadata.get("manager", "")), category)
