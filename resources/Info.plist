@@ -2,9 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
     <key>CFBundleIdentifier</key><string>local.cleanmymac.CleanMyMacLocal</string>
-    <key>CFBundleName</key><string>CleanMyMacLocal</string>
-    <key>CFBundleDisplayName</key><string>CleanMyMacLocal</string>
-    <key>CFBundleExecutable</key><string>CleanMyMacLocal</string>
+    <key>CFBundleName</key><string>TidyMac</string>
+    <key>CFBundleDisplayName</key><string>TidyMac</string>
+    <key>CFBundleExecutable</key><string>TidyMac</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.3.0</string>
     <key>CFBundleVersion</key><string>3</string>

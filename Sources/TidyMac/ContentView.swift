@@ -110,8 +110,8 @@ struct ContentView: View {
                 Image(systemName: "sparkles").font(.system(size: 22, weight: .medium)).foregroundStyle(CleanerStyle.accent)
                     .frame(width: 40, height: 40).background(CleanerStyle.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("CleanMyMac").font(.system(size: 17, weight: .semibold))
-                    Text("LOCAL EDITION").font(.system(size: 9, weight: .medium)).tracking(2).foregroundStyle(CleanerStyle.muted)
+                    Text("TidyMac").font(.system(size: 17, weight: .semibold))
+                    Text("MAC CLEANER").font(.system(size: 9, weight: .medium)).tracking(2).foregroundStyle(CleanerStyle.muted)
                 }
             }.padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 26)
             ScrollView {

@@ -2,11 +2,11 @@ import AppKit
 import SwiftUI
 
 @main
-struct CleanMyMacLocalApp: App {
+struct TidyMacApp: App {
     @State private var model = AppModel()
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     var body: some Scene {
-        WindowGroup("CleanMyMacLocal") {
+        WindowGroup("TidyMac") {
             ContentView(model: model)
                 .onAppear { if CommandLine.arguments.contains("--scan"), model.phase == .prepared { model.scan() } }
                 .frame(minWidth: 900, minHeight: 620)
