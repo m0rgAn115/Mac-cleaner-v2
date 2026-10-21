@@ -6,3 +6,10 @@ build/
 dist/
 node_modules/
 src-tauri/target/
+
+# Native application build products
+.build/
+.swiftpm/
+engine/target/
+
+.DS_Store

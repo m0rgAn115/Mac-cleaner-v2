@@ -1,0 +1,7 @@
+# Artefactos derivados del binario propietario de CleanMyMac: útiles en local
+# para retomar el análisis, pero no deben publicarse en el repo open source.
+evidence/
+symbols/
+strings/
+dispatch/
+thin/
